@@ -1,0 +1,22 @@
+<section class="tweet-form-section">
+  <h1><%= tweet?._id ? "Modifier un tweet" : "Ecrire un tweet" %></h1>
+  <form
+    action="<%= tweet?._id ? `/tweets/update/${tweet._id}` : "/tweets" %>"
+    method="POST"
+  >
+    <label for="content">Contenu</label>
+    <textarea id="content" name="content" rows="3" required>
+<%= tweet ? tweet.content : '' %></textarea
+    >
+    <div>
+      <% if (errors !== undefined && errors.length > 0) { %>
+      <div class="error-message" id="contentError">
+        <% errors.forEach(function (error) { %>
+        <p class="error-text"><%= error %></p>
+        <% }) %>
+      </div>
+      <% } %>
+    </div>
+    <button type="submit"><%= tweet?._id ? "Modifier" : "Poster" %></button>
+  </form>
+</section>

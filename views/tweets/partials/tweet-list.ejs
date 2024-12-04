@@ -1,0 +1,32 @@
+<main class="tweet-list" id="tweet-list-container">
+  <h1>Derniers posts</h1>
+  <% if (tweets && tweets.length > 0) { %>
+  <ul>
+    <% tweets.forEach(function (tweet) { %>
+    <li class="tweet-item">
+      <h2><%= tweet.author.username %></h2>
+      <p><%= tweet.content %></p>
+      <div class="tweet-actions">
+        <button
+          type="button"
+          class="btn btn-danger delete-tweet"
+          data-tweet-id="<%= tweet._id %>"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary update-tweet"
+          data-tweet-id="<%= tweet._id %>"
+          onclick="window.location.href='/tweets/edit/<%= tweet._id %>'"
+        >
+          Update
+        </button>
+      </div>
+    </li>
+    <% }); %>
+  </ul>
+  <% } else { %>
+  <p>Aucun tweet trouvé</p>
+  <% } %>
+</main>

@@ -1,0 +1,35 @@
+const fs = require("fs");
+const https = require("https");
+const http = require("http");
+const app = require("../app");
+const config = require("../environment/config");
+
+// http.createServer(app).listen(config.httpPort, () => {
+//   console.log(`http server running on port ${config.httpPort}`);
+// });
+
+http
+  .createServer((req, res) => {
+    console.log(`https://${req.headers.host}${req.url}`);
+    console.log("config.httpPort", config.httpPort);
+    console.log("config.httpsPort", config.httpsPort);
+    res.writeHead(301, {
+      Location: `https://${req.headers.host}${req.url}`,
+    });
+    res.end();
+  })
+  .listen(config.httpPort, () => {
+    console.log(`http server running on port ${config.httpPort}`);
+  });
+
+const httpsServer = https
+  .createServer(
+    {
+      key: fs.readFileSync(config.key),
+      cert: fs.readFileSync(config.cert),
+    },
+    app
+  )
+  .listen(config.httpsPort, () => {
+    console.log(`https server running on port ${config.httpsPort}`);
+  });

@@ -1,0 +1,27 @@
+**/node_modules
+
+# Fichiers d'environnement
+.env*
+.env.prod
+.env.dev
+
+# Certificats locaux
+**/ssl
+
+# Certificats de production
+/etc/letsencrypt
+
+**/uploads
+
+admin
+cours
+**/config/parameters.js
+eslint.config.mjs
+.vscode
+**/ressources/ex6
+**/ressources/ex7
+**/ressources/ex7
+daily.md
+**/corrections
+cypress
+tests

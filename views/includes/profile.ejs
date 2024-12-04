@@ -1,0 +1,29 @@
+<section class="profile">
+  <script src="/javascripts/users/profile.js"></script>
+  <form
+    class="profile-avatar"
+    id="profile-avatar-form"
+    action="/users/update/avatar"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <input type="file" name="avatar" id="avatar-input" hidden />
+    <img
+      src="<%= currentUser.avatar || '/images/avatars/default-avatar.png' %>"
+      alt="Avatar de username"
+      id="image-profile"
+    />
+  </form>
+  <h2><%= currentUser.username %></h2>
+  <p class="profile-email"><%= currentUser.email %></p>
+  <div class="profile-stats">
+    <div class="stat-item">
+      <span class="stat-value"><%= tweets.length %></span>
+      <span class="stat-label">Tweets</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">120</span>
+      <span class="stat-label">Abonnements</span>
+    </div>
+  </div>
+</section>

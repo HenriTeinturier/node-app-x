@@ -1,0 +1,30 @@
+<nav class="topbar__nav">
+  <div class="topbar__left">
+    <a href="/" class="topbar__brand">
+      <img src="/images/X_logo.png" alt="Logo" class="topbar__logo" />
+    </a>
+  </div>
+  <div class="topbar__right">
+    <% if (isAuthenticated) { %>
+    <a href="/tweets/new" class="topbar__button-link">
+      <button class="topbar__button">Poster</button>
+    </a>
+    <ul class="topbar__menu">
+      <li class="topbar__item">
+        <a href="/auth/signout" class="topbar__link">Déconnexion</a>
+      </li>
+    </ul>
+    <% } else { %>
+    <ul class="topbar__menu">
+      <li class="topbar__item">
+        <a href="/auth/signin/form" class="topbar__link">Connexion</a>
+      </li>
+    </ul>
+    <ul class="topbar__menu">
+      <li class="topbar__item">
+        <a href="/users/signup/form" class="topbar__link">S'inscrire</a>
+      </li>
+    </ul>
+    <% } %>
+  </div>
+</nav>
