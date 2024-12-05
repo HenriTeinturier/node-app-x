@@ -10,9 +10,6 @@ const config = require("../environment/config");
 
 http
   .createServer((req, res) => {
-    console.log(`https://${req.headers.host}${req.url}`);
-    console.log("config.httpPort", config.httpPort);
-    console.log("config.httpsPort", config.httpsPort);
     res.writeHead(301, {
       Location: `https://${req.headers.host}${req.url}`,
     });
