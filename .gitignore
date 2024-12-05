@@ -5,6 +5,10 @@
 .env.prod
 .env.dev
 
+ecosystem.config.js
+
+
+
 # Certificats locaux
 **/ssl
 
