@@ -6,7 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "set NODE_ENV=development && node --watch --watch-preserve-output ./bin/www",
-    "prod": "set NODE_ENV=production && node --watch --watch-preserve-output ./bin/www"
+    "prod": "set NODE_ENV=production && node --watch --watch-preserve-output ./bin/www",
+    "vps": "pm2 start ecosystem.config.js && pm2 save",
+    "logs": "pm2 logs X-Clone",
+    "vps:stop": "pm2 stop X-Clone",
+    "vps:restart": "pm2 restart X-Clone"
   },
   "author": "",
   "license": "ISC",
