@@ -22,7 +22,7 @@ http
     console.log(`http server running on port ${config.httpPort}`);
   });
 
-const httpsServer = https
+https
   .createServer(
     {
       key: fs.readFileSync(config.key),
