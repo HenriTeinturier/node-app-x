@@ -24,6 +24,8 @@ On va lancer la commande pm2 startup pour que pm2 se lancer au démarrage de la 
 pm2 startup
 ```
 
+pm2 proposera peut être une commande à lancer pour qu'il puisse s'exécuter au démarrage.
+
 Nous allons créer un fichier ecosystem.config.js dans le dossier root pour y rentrer nos variables d'environnements.
 Dans notre repo github on ne pousse pas ce fichier donc on l'ajoute dans .gitignore.
 
@@ -56,7 +58,24 @@ module.exports = {
 };
 ```
 
-Sur notre vps il faudra renommer ce fichier en ecosystem.config.js et y rentrer nos variables d'environnements.
+Sur notre vps il faudra dupliquer ce fichier en ecosystem.config.js et y rentrer nos variables d'environnements.
+
+```bash
+cp ecosystem.config.exemple.js ecosystem.config.js
+```
+
+On peut ensuite mettre les variables d'environnements dans le fichier ecosystem.config.js avec nano ou votre éditeur de code préféré.
+
+```bash
+nano ecosystem.config.js
+```
+
+Pour sauvegarder et quitter nano:
+
+```bash
+CTRL + O // pour sauvegarder
+CTRL + X // pour quitter
+```
 
 Nous allons créer un nouveau scrypt pour notre vps dans le package.json:
 
@@ -74,3 +93,86 @@ Ensuite on peut lancer notre serveur en mode production avec la commande:
 ```bash
 npm run vps
 ```
+
+Problème d'autorisation de lecture des fichiers letsencrypt:
+Ceci est lié à OVH car de base nous n'avons pas les droits de lecture sur les fichiers letsencrypt avec notre utilisateur.
+
+Voici la procédure à suivre pour créer un group letsencrypt puis ajouter les fichiers dans ce group et y ajouter notre utilisateur: (l'utilisateur ici c'est ubuntu)
+
+1. Créer un group letsencrypt:
+
+```bash
+sudo groupadd letsencrypt
+```
+
+2. Ajouter les fichiers dans le group letsencrypt:
+
+```bash
+sudo chown root:letsencrypt /etc/letsencrypt/archive/vps-henri.ovh/privkey1.pem
+sudo chown root:letsencrypt /etc/letsencrypt/archive/vps-henri.ovh/fullchain1.pem
+sudo chown root:letsencrypt /etc/letsencrypt/live/vps-henri.ovh/privkey.pem
+sudo chown root:letsencrypt /etc/letsencrypt/live/vps-henri.ovh/fullchain.pem
+```
+
+Donner les permissions de lecture au group letsencrypt:
+
+```bash
+sudo chmod 640 /etc/letsencrypt/archive/vps-henri.ovh/privkey1.pem
+sudo chmod 640 /etc/letsencrypt/archive/vps-henri.ovh/fullchain1.pem
+sudo chmod 640 /etc/letsencrypt/live/vps-henri.ovh/privkey.pem
+sudo chmod 640 /etc/letsencrypt/live/vps-henri.ovh/fullchain.pem
+```
+
+3. Ajouter notre utilisateur au group letsencrypt:
+
+```bash
+sudo usermod -a -G letsencrypt ubuntu
+```
+
+Reconnecter et reconnexion à la machine.
+
+```bash
+exit
+ssh ubuntu@tonvps
+```
+
+Tester l'accès aux fichiers letsencrypt:
+
+```bash
+ls -l /etc/letsencrypt/live/vps-henri.ovh/privkey.pem
+cat /etc/letsencrypt/live/vps-henri.ovh/privkey.pem
+```
+
+Relancer le serveur:
+
+```bash
+pm2 restart X-Clone
+```
+
+J'avais plusieurs problème:
+Les ports 80 et 443 ne sont pas accessible en l'état sur mon vps.
+
+J'ai donc du changer les ports:
+HTTP: 8080
+HTTPS: 8443
+
+De plus la redirection ne prenait pas en compte le changement de port entre Http et https j'ai donc du remplacer dans le fichier bin/www:
+
+```js
+res.writeHead(301, {
+  Location: `https://${req.headers.host.split(":")[0]}:${config.httpsPort}${
+    req.url
+  }`,
+});
+```
+
+J'ai également du ajouter pour la connexion google Authorised redirect URIs
+https://vps-henri.ovh:8443/auth/google/callback
+
+Et Authorised JavaScript origins
+https://vps-henri.ovh:8443
+
+Et tout est enfin ok
+
+Bon par contre du coup dans l'adresse de vps pour le moment je dois mettre le port:
+https://vps-henri.ovh:8443
