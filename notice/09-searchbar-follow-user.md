@@ -1765,12 +1765,19 @@ models/queries/users.queries.js
 
 ```javascript
 exports.searchUsersByUsername = async (search) => {
+  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // N'accepte que les lettres, chiffres et quelques caractères spéciaux
+  if (!/^[a-zA-Z0-9\s\-_]+$/.test(search)) {
+    throw new Error("Caractères non autorisés");
+  }
+
   // $regex pour la recherche avec les options i pour ignorer la casse
   // si search="pierre" on va chercher tous les users dont le username contient "pierrre".
   // La fonction trouvera "Pierre", "PIERRE", "pierre", "jean pierre" etc...
   // on ne veut pas récupérer le password, l'email et les id google mais juste le username, l'avatar et l'id
   return await User.find(
-    { username: { $regex: search, $options: "i" } },
+    { username: { $regex: escapedSearch, $options: "i" } },
     { username: 1, avatar: 1, _id: 1 }
   );
 };

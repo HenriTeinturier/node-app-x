@@ -30,8 +30,15 @@ exports.getUserByUsername = async (username) => {
 };
 
 exports.searchUsersByUsername = async (search) => {
+  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // N'accepte que les lettres, chiffres et quelques caractères spéciaux
+  if (!/^[a-zA-Z0-9\s\-_]+$/.test(search)) {
+    throw new Error("Caractères non autorisés");
+  }
+
   return await User.find(
-    { username: { $regex: search, $options: "i" } },
+    { username: { $regex: escapedSearch, $options: "i" } },
     { username: 1, avatar: 1, _id: 1 }
   );
 };
