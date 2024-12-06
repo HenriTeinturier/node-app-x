@@ -4,8 +4,17 @@
   <ul>
     <% tweets.forEach(function (tweet) { %>
     <li class="tweet-item">
-      <h2><%= tweet.author.username %></h2>
+      <div class="tweet-header">
+        <img
+          src="<%= tweet.author.avatar || '/images/avatars/default-avatar.png' %>"
+          alt="Avatar"
+          class="tweet-avatar"
+        />
+        <span class="tweet-username"><%= tweet.author.username %></span>
+      </div>
       <p><%= tweet.content %></p>
+      <% if (editable && tweet.author._id.toString() ===
+      currentUser._id.toString()) { %>
       <div class="tweet-actions">
         <button
           type="button"
@@ -23,6 +32,7 @@
           Update
         </button>
       </div>
+      <% } %>
     </li>
     <% }); %>
   </ul>

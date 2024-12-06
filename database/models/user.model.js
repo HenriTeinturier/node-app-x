@@ -10,6 +10,7 @@ const userSchema = new Schema({
     unique: true,
   },
   avatar: { type: String, default: "/images/avatars/default-avatar.png" },
+  following: { type: [Schema.Types.ObjectId], ref: "user", default: [] },
   local: {
     password: { type: String },
   },

@@ -1,9 +1,29 @@
 <nav class="topbar__nav">
+  <!-- Left -->
   <div class="topbar__left">
     <a href="/" class="topbar__brand">
       <img src="/images/X_logo.png" alt="Logo" class="topbar__logo" />
     </a>
   </div>
+
+  <!-- Search -->
+  <form class="topbar__search">
+    <input
+      type="search"
+      class="topbar__search-input"
+      id="search-input"
+      placeholder="Rechercher un utilisateur..."
+      aria-label="Rechercher un utilisateur"
+    />
+    <div id="search-menu-container">
+      <div class="search-menu">
+        <!-- partial search-results.ejs -->
+        <%- include("search-results") %>
+      </div>
+    </div>
+  </form>
+
+  <!-- Right -->
   <div class="topbar__right">
     <% if (isAuthenticated) { %>
     <a href="/tweets/new" class="topbar__button-link">

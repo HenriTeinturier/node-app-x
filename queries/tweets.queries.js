@@ -1,4 +1,5 @@
 const Tweet = require("../database/models/tweet.model");
+const User = require("../database/models/user.model");
 
 exports.getTweets = async () => {
   return await Tweet.find({}).sort({ createdAt: -1 });
@@ -6,7 +7,28 @@ exports.getTweets = async () => {
 
 exports.getTweetsWithAuthors = async () => {
   return await Tweet.find({})
-    .populate("author", "username")
+    .populate("author", "username avatar")
+    .sort({ createdAt: -1 });
+};
+
+exports.getCurrentUserTweetsWithFollowing = async (user) => {
+  return await Tweet.find({
+    author: { $in: [user._id, ...user.following] },
+  })
+    .populate("author", "username avatar")
+    .sort({ createdAt: -1 });
+};
+
+exports.getTweetsFromUsername = async (username) => {
+  // nous avons besoin de récupérer l'utilisateur à partir de son username afin de récupérer son _id
+  const user = await User.findOne({ username: username });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // en effet, dans le tweet model il n'y a pas le username pour faire une recherche
+  return await Tweet.find({ author: user._id })
+    .populate("author", "username avatar")
     .sort({ createdAt: -1 });
 };
 

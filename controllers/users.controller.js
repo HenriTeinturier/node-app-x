@@ -1,7 +1,12 @@
-const { createUser } = require("../queries/users.queries");
+const {
+  createUser,
+  getUserByUsername,
+  searchUsersByUsername,
+} = require("../queries/users.queries");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const { getTweetsFromUsername } = require("../queries/tweets.queries");
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -65,3 +70,31 @@ exports.updateAvatar = [
     }
   },
 ];
+
+exports.userProfile = async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const user = await getUserByUsername(username);
+    const tweets = await getTweetsFromUsername(username);
+    res.render("layout", {
+      content: "tweets/tweets",
+      tweets: tweets,
+      isAuthenticated: req.isAuthenticated(),
+      currentUser: req.user,
+      user: user,
+      editable: false,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.usersSearch = async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    const users = await searchUsersByUsername(search);
+    res.render("includes/search-results", { users });
+  } catch (err) {
+    next(err);
+  }
+};

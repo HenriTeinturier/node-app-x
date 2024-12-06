@@ -1,20 +1,22 @@
 const {
-  getTweetsWithAuthors,
   createTweet,
   deleteTweet,
   getTweetById,
   updateTweet,
   getTweets,
+  getCurrentUserTweetsWithFollowing,
 } = require("../queries/tweets.queries");
 
 exports.tweetList = async (req, res, next) => {
   try {
-    const tweets = await getTweetsWithAuthors();
+    const tweets = await getCurrentUserTweetsWithFollowing(req.user);
     res.render("layout", {
       content: "tweets/tweets",
       tweets: tweets,
       isAuthenticated: req.isAuthenticated(),
       currentUser: req.user,
+      user: req.user,
+      editable: true,
     });
   } catch (err) {
     next(err);
@@ -54,11 +56,12 @@ exports.tweetDelete = async (req, res, next) => {
     await deleteTweet(tweetId);
     // res.redirect("/tweets");
     // on renvoi plutôt un partial de la liste des tweets
-    const tweets = await getTweets();
+    const tweets = await getCurrentUserTweetsWithFollowing(req.user);
     res.render("tweets/partials/tweet-list", {
       tweets: tweets,
       isAuthenticated: req.isAuthenticated(),
       currentUser: req.user,
+      editable: true,
     });
   } catch (err) {
     next(err);

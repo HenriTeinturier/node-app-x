@@ -1,0 +1,13 @@
+<% if (typeof users !== 'undefined' && users && users.length > 0) { %> <%
+users.forEach(user => { %>
+<a href="/users/<%= user.username %>">
+  <div class="search-menu__user">
+    <img
+      src="<%= user.avatar || '/images/avatars/default-avatar.png' %>"
+      alt="Avatar <%= user.username %>"
+      class="search-menu__avatar"
+    />
+    <span class="search-menu__username"><%= user.username %></span>
+  </div>
+</a>
+<% }); %> <% } %>

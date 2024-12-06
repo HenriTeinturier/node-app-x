@@ -9,13 +9,13 @@
   >
     <input type="file" name="avatar" id="avatar-input" hidden />
     <img
-      src="<%= currentUser.avatar || '/images/avatars/default-avatar.png' %>"
+      src="<%= user.avatar || '/images/avatars/default-avatar.png' %>"
       alt="Avatar de username"
       id="image-profile"
     />
   </form>
-  <h2><%= currentUser.username %></h2>
-  <p class="profile-email"><%= currentUser.email %></p>
+  <h2><%= user.username %></h2>
+  <p class="profile-email"><%= user.email %></p>
   <div class="profile-stats">
     <div class="stat-item">
       <span class="stat-value"><%= tweets.length %></span>

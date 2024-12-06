@@ -24,3 +24,14 @@ exports.findUserByEmail = async (email) => {
 exports.findUserById = async (_id) => {
   return User.findById(_id);
 };
+
+exports.getUserByUsername = async (username) => {
+  return await User.findOne({ username: username });
+};
+
+exports.searchUsersByUsername = async (search) => {
+  return await User.find(
+    { username: { $regex: search, $options: "i" } },
+    { username: 1, avatar: 1, _id: 1 }
+  );
+};
