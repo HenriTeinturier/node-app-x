@@ -271,3 +271,48 @@ module.exports = {
   ],
 };
 ```
+
+## Bonus : Cron Job
+
+Il faut renouveller le certificat SSL tous les 3 mois. certbot à généré automatiquement un cron job dans le fichier /etc/cron.d/certbot
+Les cron job sont gérés par le système de cron de linux.
+ils permettent de lancer des scripts à des intervalles réguliers.
+
+Si certbot n'avait pas généré de cron job, il est possible de le faire manuellement ce cette façon :
+
+On peut déjà lister les cron job déjà présent avec la commande :
+
+```bash
+sudo crontab -l
+```
+
+Mais on ne verra pas celui mis en place de certbot car il est dans le fichier /etc/cron.d/certbot. On ne le voit pas car il est dans un autre fichier que celui géré par crontab.
+
+Pour éditer le fichier de cron job, il faut se rendre dans le dossier :
+
+```bash
+sudo nano /etc/crontab
+```
+
+On peut ensuite ajouter notre cron job. Il est constitué de 5 éléments séparés par des espaces :
+
+- Minutes (0-59)
+- Heures (0-23)
+- Jours (1-31)
+- Mois (1-12)
+- Jours de la semaine (0-7)
+
+Voici le cronjob que certbot a généré automatiquement :
+
+```bash
+0 */12 * * * root test -x /usr/bin/certbot -a \! -d /run/systemd/system && perl -e 'sleep int(rand(43200))' && certbot -q renew --no-random-sleep-on-renew
+```
+
+Analysons ce cron job :
+
+- `0 */12 * * *` : S'exécute toutes les 12 heures
+- `root` : Exécuté en tant que root
+- `test -x /usr/bin/certbot -a \! -d /run/systemd/system` : Vérifie que certbot est exécutable et que systemd n'est pas en cours d'initialisation
+- `perl -e 'sleep int(rand(43200))'` : Ajoute un délai aléatoire jusqu'à 12 heures pour éviter que tous les serveurs renouvellent en même temps
+- `certbot -q renew` : Renouvelle silencieusement les certificats si nécessaire
+- `--no-random-sleep-on-renew` : Désactive le délai aléatoire supplémentaire pendant le renouvellement
