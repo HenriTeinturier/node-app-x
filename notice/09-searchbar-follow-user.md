@@ -1871,3 +1871,291 @@ users.forEach(user => { %>
 ```
 
 ## Follow User
+
+On ajoute un bouton follow dans la page profil si:
+
+- L'utilisateur n'est pas le même que l'utilisateur connecté
+- L'utilisateur n'est pas déjà suivi (currentUser.following.map((id) => id.toString()).includes(user.\_id.toString()))
+
+On va également ajouter des liens pour les boutons suivre et ne plus suivre. On va créer les routes juste après.
+
+- /users/follow/:userId
+- /users/unfollow/:userId
+
+views/includes/profile.ejs
+
+```html
+<section class="profile">
+  <script src="/javascripts/users/profile.js"></script>
+  <form
+    class="profile-avatar"
+    id="profile-avatar-form"
+    action="/users/update/avatar"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <input type="file" name="avatar" id="avatar-input" hidden />
+    <img
+      src="<%= user.avatar || '/images/avatars/default-avatar.png' %>"
+      alt="Avatar de username"
+      id="image-profile"
+    />
+  </form>
+  <h2><%= user.username %></h2>
+  <p class="profile-email"><%= user.email %></p>
+  <div class="profile-stats">
+    <div class="stat-item">
+      <span class="stat-value"><%= tweets.length %></span>
+      <span class="stat-label">Tweets</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">120</span>
+      <span class="stat-label">Abonnements</span>
+    </div>
+  </div>
+  <% if (currentUser._id.toString() !== user._id.toString()) { %> <% if
+  (!currentUser.following.map((id) =>
+  id.toString()).includes(user._id.toString())) { %>
+  <a href="/users/follow/<%= user._id %>">
+    <button class="topbar__button profile__follow-btn">Suivre</button>
+  </a>
+  <% } else { %>
+  <a href="/users/unfollow/<%= user._id %>">
+    <button class="topbar__button profile__unfollow-btn">Ne plus suivre</button>
+  </a>
+  <% } %> <% } %>
+</section>
+```
+
+Et ajouter le css suivant dans main.css section 6 PROFIL UTILISATEUR
+
+```css
+/* Dans la section 6. PROFIL UTILISATEUR */
+.profile__follow-btn,
+.profile__unfollow-btn {
+  display: block;
+  margin: 15px auto;
+  width: 80%;
+  max-width: 200px;
+}
+
+.profile__unfollow-btn {
+  background-color: #dc3545 !important; /* Rouge pour le bouton "Ne plus suivre" */
+}
+
+.profile__unfollow-btn:hover {
+  background-color: #a71d2a !important;
+}
+```
+
+On va maintenant créer nos routes /users/follow/:id et /users/unfollow/:id.
+
+routes/users.routes.js
+
+```javascript
+const router = require("express").Router();
+const { ensureAuthenticated } = require("../config/guards.config");
+const {
+  signupForm,
+  signup,
+  updateAvatar,
+  userProfile,
+  usersSearch,
+  followUser,
+  unfollowUser,
+} = require("../controllers/users.controller");
+
+router.get("/signup/form", signupForm);
+router.post("/signup", signup);
+router.post("/update/avatar", ensureAuthenticated, updateAvatar);
+router.get("/follow/:userId", ensureAuthenticated, followUser);
+router.get("/unfollow/:userId", ensureAuthenticated, unfollowUser);
+router.get("/:username", userProfile);
+router.get("/", usersSearch);
+
+module.exports = router;
+```
+
+On va maintenant créer les méthodes dans le controller users.controller.js
+
+controllers/users.controller.js
+
+```javascript
+exports.followUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUser = req.user;
+
+    // ces deux requêttes peuvent être faite en parallèle
+    // on utilise Promise.all pour les faire en parallèle
+    // on utilise le destructuring pour récupérer les résultats des deux promesses
+    // on ne veut pas récupérer le résultat de addUserIdToCurrentUserFollowing
+    // donc on laisse vide le premier élément du tableau
+    const [, user] = await Promise.all([
+      addUserIdToCurrentUserFollowing(userId, currentUser._id),
+      findUserById(userId),
+    ]);
+
+    res.redirect(`/users/${user.username}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.unfollowUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUser = req.user;
+    const [, user] = await Promise.all([
+      removeUserIdFromCurrentUserFollowing(userId, currentUser._id),
+      findUserById(userId),
+    ]);
+    res.redirect(`/users/${user.username}`);
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+On va avoir besoin d'ajouter des queries dans le models/queries/users.queries.js
+
+models/queries/users.queries.js
+
+```javascript
+exports.addUserIdToCurrentUserFollowing = async (userId, currentUserId) => {
+  return await User.findByIdAndUpdate(currentUserId, {
+    $addToSet: { following: userId },
+  });
+  // on aurait aussi pu faire:
+  // currentUser.following.push(userId);
+  // return await currentUser.save();
+};
+
+exports.removeUserIdFromCurrentUserFollowing = async (
+  userId,
+  currentUserId
+) => {
+  return await User.findByIdAndUpdate(currentUserId, {
+    $pull: { following: userId },
+  });
+  // on aurait aussi pu faire:
+  // currentUser.following = currentUser.following.filter(
+  //   (id) => id.toString() !== userId
+  // );
+  // return await currentUser.save();
+};
+```
+
+Il faut mettre à jour l'affiche du nombre d'abonnements dans la view partial profile.ejs
+On en profite également pour corriger le nombre de tweets qui comptait le total des tweets affichés y compris ceux n'appartenant pas à l'utilisateur connecté.
+
+views/includes/profile.ejs
+
+```html
+<section class="profile">
+  <script src="/javascripts/users/profile.js"></script>
+  <form
+    class="profile-avatar"
+    id="profile-avatar-form"
+    action="/users/update/avatar"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <input type="file" name="avatar" id="avatar-input" hidden />
+    <img
+      src="<%= user.avatar || '/images/avatars/default-avatar.png' %>"
+      alt="Avatar de username"
+      id="image-profile"
+    />
+  </form>
+  <h2><%= user.username %></h2>
+  <p class="profile-email"><%= user.email %></p>
+  <div class="profile-stats">
+    <div class="stat-item">
+      <span class="stat-value"
+        ><%= tweets.filter(tweet => tweet.author._id.toString() ===
+        user._id.toString()).length %></span
+      >
+      <span class="stat-label">Tweets</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value"><%= user.following.length || "-" %></span>
+      <span class="stat-label">Abonnements</span>
+    </div>
+  </div>
+  <% if (currentUser._id.toString() !== user._id.toString()) { %> <% if
+  (!currentUser.following.map((id) =>
+  id.toString()).includes(user._id.toString())) { %>
+  <a href="/users/follow/<%= user._id %>">
+    <button class="topbar__button profile__follow-btn">Suivre</button>
+  </a>
+  <% } else { %>
+  <a href="/users/unfollow/<%= user._id %>">
+    <button class="topbar__button profile__unfollow-btn">Ne plus suivre</button>
+  </a>
+  <% } %> <% } %>
+</section>
+```
+
+On va également ajouter un lien vers le profil des utilisateurs qui apparaissent dans la liste de nos tweets.
+
+/tweets/partials/tweet-list.ejs
+
+```html
+<main class="tweet-list" id="tweet-list-container">
+  <h1>Derniers posts</h1>
+  <% if (tweets && tweets.length > 0) { %>
+  <ul>
+    <% tweets.forEach(function (tweet) { %>
+    <li class="tweet-item">
+      <% if (currentUser._id.toString() !== tweet.author._id.toString()) { %>
+        <a href="/users/<%= tweet.author.username %>">
+      <% } else { %>
+        <div>
+      <% } %>
+        <div class="tweet-header">
+          <img
+            src="<%= tweet.author.avatar || '/images/avatars/default-avatar.png' %>"
+            alt="Avatar"
+            class="tweet-avatar"
+          />
+          <span class="tweet-username"><%= tweet.author.username %></span>
+        </div>
+      <% if (currentUser._id.toString() !== tweet.author._id.toString()) { %>
+        </a>
+      <% } else { %>
+        </div>
+      <% } %>
+      <p><%= tweet.content %></p>
+      <% if (editable && tweet.author._id.toString() ===
+      currentUser._id.toString()) { %>
+      <div class="tweet-actions">
+        <button
+          type="button"
+          class="btn btn-danger delete-tweet"
+          data-tweet-id="<%= tweet._id %>"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary update-tweet"
+          data-tweet-id="<%= tweet._id %>"
+          onclick="window.location.href='/tweets/edit/<%= tweet._id %>'"
+        >
+          Update
+        </button>
+      </div>
+      <% } %>
+    </li>
+    <% }); %>
+  </ul>
+  <% } else { %>
+  <p>Aucun tweet trouvé</p>
+  <% } %>
+</main>
+```
+
+Normalement tout est ok. Les posts de cet utilisateurs sont biens affichés dans nos tweets.
+
+//TODO améliorer le design des boutons delete et update et sur la même ligne que le post ou le username du post

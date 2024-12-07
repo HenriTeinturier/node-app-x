@@ -18,12 +18,26 @@
   <p class="profile-email"><%= user.email %></p>
   <div class="profile-stats">
     <div class="stat-item">
-      <span class="stat-value"><%= tweets.length %></span>
+      <span class="stat-value"
+        ><%= tweets.filter(tweet => tweet.author._id.toString() ===
+        user._id.toString()).length %></span
+      >
       <span class="stat-label">Tweets</span>
     </div>
     <div class="stat-item">
-      <span class="stat-value">120</span>
+      <span class="stat-value"><%= user.following.length || "-" %></span>
       <span class="stat-label">Abonnements</span>
     </div>
   </div>
+  <% if (currentUser._id.toString() !== user._id.toString()) { %> <% if
+  (!currentUser.following.map((id) =>
+  id.toString()).includes(user._id.toString())) { %>
+  <a href="/users/follow/<%= user._id %>">
+    <button class="topbar__button profile__follow-btn">Suivre</button>
+  </a>
+  <% } else { %>
+  <a href="/users/unfollow/<%= user._id %>">
+    <button class="topbar__button profile__unfollow-btn">Ne plus suivre</button>
+  </a>
+  <% } %> <% } %>
 </section>

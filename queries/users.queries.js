@@ -42,3 +42,18 @@ exports.searchUsersByUsername = async (search) => {
     { username: 1, avatar: 1, _id: 1 }
   );
 };
+
+exports.addUserIdToCurrentUserFollowing = async (userId, currentUserId) => {
+  return await User.findByIdAndUpdate(currentUserId, {
+    $addToSet: { following: userId },
+  });
+};
+
+exports.removeUserIdFromCurrentUserFollowing = async (
+  userId,
+  currentUserId
+) => {
+  return await User.findByIdAndUpdate(currentUserId, {
+    $pull: { following: userId },
+  });
+};

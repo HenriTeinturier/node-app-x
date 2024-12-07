@@ -513,6 +513,22 @@ form button:hover {
   color: #666;
 }
 
+.profile__follow-btn,
+.profile__unfollow-btn {
+  display: block;
+  margin: 15px auto;
+  width: 80%;
+  max-width: 200px;
+}
+
+.profile__unfollow-btn {
+  background-color: #dc3545 !important; /* Rouge pour le bouton "Ne plus suivre" */
+}
+
+.profile__unfollow-btn:hover {
+  background-color: #a71d2a !important;
+}
+
 /* Media queries pour profil */
 @media (max-width: 768px) {
   .profile-section {

@@ -2,6 +2,9 @@ const {
   createUser,
   getUserByUsername,
   searchUsersByUsername,
+  addUserIdToCurrentUserFollowing,
+  findUserById,
+  removeUserIdFromCurrentUserFollowing,
 } = require("../queries/users.queries");
 const path = require("path");
 const fs = require("fs");
@@ -94,6 +97,41 @@ exports.usersSearch = async (req, res, next) => {
     const { search } = req.query;
     const users = await searchUsersByUsername(search);
     res.render("includes/search-results", { users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.followUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUser = req.user;
+
+    // ces deux requêttes peuvent être faite en parallèle
+    // on utilise Promise.all pour les faire en parallèle
+    // on utilise le destructuring pour récupérer les résultats des deux promesses
+    // on ne veut pas récupérer le résultat de addUserIdToCurrentUserFollowing
+    // donc on laisse vide le premier élément du tableau
+    const [, user] = await Promise.all([
+      addUserIdToCurrentUserFollowing(userId, currentUser._id),
+      findUserById(userId),
+    ]);
+
+    res.redirect(`/users/${user.username}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.unfollowUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUser = req.user;
+    const [, user] = await Promise.all([
+      removeUserIdFromCurrentUserFollowing(userId, currentUser._id),
+      findUserById(userId),
+    ]);
+    res.redirect(`/users/${user.username}`);
   } catch (err) {
     next(err);
   }
