@@ -2157,5 +2157,3 @@ On va également ajouter un lien vers le profil des utilisateurs qui apparaissen
 ```
 
 Normalement tout est ok. Les posts de cet utilisateurs sont biens affichés dans nos tweets.
-
-//TODO améliorer le design des boutons delete et update et sur la même ligne que le post ou le username du post
