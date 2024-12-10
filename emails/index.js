@@ -9,10 +9,12 @@ class Email {
   constructor() {
     this.from = `X-clone <no-reply@${config.sparkPostDomain}>`;
     if (config.nodeEnv === "production") {
-      this.transporter = nodemailerSparkpostTransport({
-        sparkPostApiKey: process.env.SPARKPOST_API_KEY,
-        endpoint: "https://api.eu.sparkpost.com",
-      });
+      this.transporter = nodemailer.createTransport(
+        nodemailerSparkpostTransport({
+          sparkPostApiKey: config.sparkPostApiKey,
+          endpoint: "https://api.eu.sparkpost.com",
+        })
+      );
     } else {
       this.transporter = nodemailer.createTransport({
         host: "sandbox.smtp.mailtrap.io",

@@ -145,10 +145,12 @@ class Email {
   constructor() {
     this.from = `X-clone <no-reply@${config.sparkPostDomain}>`;
     if (config.nodeEnv === "production") {
-      this.transporter = nodemailerSparkpostTransport({
-        sparkPostApiKey: process.env.SPARKPOST_API_KEY,
-        endpoint: "https://api.eu.sparkpost.com",
-      });
+      this.transporter = nodemailer.createTransport(
+        nodemailerSparkpostTransport({
+          sparkPostApiKey: config.sparkPostApiKey,
+          endpoint: "https://api.eu.sparkpost.com",
+        })
+      );
     } else {
       this.transporter = nodemailer.createTransport({
         host: "sandbox.smtp.mailtrap.io",
@@ -445,4 +447,84 @@ exports.createUser = async (user) => {
 };
 ```
 
-##
+## Mise à jour pour l'inscription avec Google
+
+### Mise à jour de la strategy passport Google
+
+On va modifier la configuration de passport google.
+On ajoute le token de vérification et le champ emailVerified à false avant de save le user dans la bdd.
+
+/config/passport.config.js
+
+```js
+const { v4: uuidv4 } = require("uuid");
+
+passport.use(
+  "google",
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+        const user = await findUserByEmail(email);
+
+        if (user) {
+          return done(null, user);
+        }
+
+        const newUser = new User({
+          username: profile.displayName,
+          email: email,
+          emailToken: uuidv4(),
+          emailVerified: false,
+          google: {
+            id: profile.id,
+          },
+        });
+
+        const savedUser = await newUser.save();
+        return done(null, savedUser);
+      } catch (error) {
+        return done(error);
+      }
+    }
+  )
+);
+```
+
+### Mise à jour du controller de l'inscription avec Google
+
+/controllers/auth.controller.js
+
+On va ajouter l'envoi de l'email de vérification dans le controller de l'inscription avec Google.
+
+```js
+const emailService = require("../emails");
+
+exports.signinWithGoogleCallback = (req, res, next) => {
+  passport.authenticate("google", (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
+    emailService.sendEmailVerification({
+      to: user.email,
+      username: user.username,
+      token: user.emailToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
+
+    return req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      return res.redirect("/tweets");
+    });
+  })(req, res, next);
+};
+```

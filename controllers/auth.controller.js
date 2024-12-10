@@ -1,4 +1,5 @@
 const passport = require("passport");
+const emailService = require("../emails");
 
 exports.signinForm = (req, res, next) => {
   res.render("layout", {
@@ -50,9 +51,32 @@ exports.signinWithGoogle = (req, res, next) => {
   );
 };
 
+// exports.signinWithGoogleCallback = (req, res, next) => {
+//   passport.authenticate("google", {
+//     successRedirect: "/tweets",
+//     failureRedirect: "/auth/signin/form",
+//   })(req, res, next);
+// };
+
 exports.signinWithGoogleCallback = (req, res, next) => {
-  passport.authenticate("google", {
-    successRedirect: "/tweets",
-    failureRedirect: "/auth/signin/form",
+  passport.authenticate("google", (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
+    emailService.sendEmailVerification({
+      to: user.email,
+      username: user.username,
+      token: user.emailToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
+
+    return req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      return res.redirect("/tweets");
+    });
   })(req, res, next);
 };

@@ -4,6 +4,7 @@ const LocalStrategy = require("passport-local");
 const { findUserByEmail, findUserById } = require("../queries/users.queries");
 const GoogleStrategy = require("passport-google-oauth20");
 const User = require("../database/models/user.model");
+const { v4: uuidv4 } = require("uuid");
 
 app.use(passport.initialize()); // initialisation obligatoire
 
@@ -85,6 +86,8 @@ passport.use(
         const newUser = new User({
           username: profile.displayName,
           email: email,
+          emailToken: uuidv4(),
+          emailVerified: false,
           google: {
             id: profile.id,
           },
