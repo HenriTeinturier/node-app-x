@@ -19,7 +19,7 @@ class Email {
         port: 2525,
         auth: {
           user: config.mailtrapUser,
-          pass: config.mailtrapApiKey,
+          pass: config.mailtrapPassword,
         },
       });
     }
@@ -66,7 +66,7 @@ class Email {
       template: "email-verification",
       templateData: {
         username: options.username,
-        url: `https://${options.host}/auth/verify?userId=${options.userId}&token=${options.token}`,
+        url: `https://${options.host}/users/verify?userId=${options.userId}&token=${options.token}`,
       },
     });
   }

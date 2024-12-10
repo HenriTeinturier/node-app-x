@@ -11,4 +11,5 @@ module.exports = {
   sparkPostDomain: process.env.SPARKPOST_DOMAIN,
   mailtrapApiKey: process.env.MAILTRAP_API_KEY,
   mailtrapUser: process.env.MAILTRAP_USER,
+  mailtrapPassword: process.env.MAILTRAP_PASSWORD,
 };

@@ -40,17 +40,17 @@ On ajoute un affichage du statut de vérification de l'email dans le profil de l
 
 /views/includes/profile.ejs
 
-```ejs
- <!-- Affichage du statut de vérification de l'email -->
-  <% if (currentUser._id.toString() === user._id.toString()) { %>
-  <div class="profile-verification-status">
-    <% if (currentUser.emailVerified) { %>
-    <span class="verification-badge verified">✓ Email vérifié</span>
-    <% } else { %>
-    <span class="verification-badge unverified">⚠ Email non vérifié</span>
-    <% } %>
-  </div>
+```html
+<!-- Affichage du statut de vérification de l'email -->
+<% if (currentUser._id.toString() === user._id.toString()) { %>
+<div class="profile-verification-status">
+  <% if (currentUser.emailVerified) { %>
+  <span class="verification-badge verified">✓ Email vérifié</span>
+  <% } else { %>
+  <span class="verification-badge unverified">⚠ Email non vérifié</span>
   <% } %>
+</div>
+<% } %>
 ```
 
 Et on ajoute ce css dans le fichier main.css dans la partie 6 PROFILE UTILISATEUR
@@ -113,8 +113,8 @@ on ajoute les variables d'environnement dans le fichier .env.dev et .env.prod
 ```bash
 SPARKPOST_API_KEY=""
 SPARKPOST_DOMAIN=""
-MAILTRAP_API_KEY=""
 MAILTRAP_USER=""
+MAILTRAP_PASSWORD=""
 ```
 
 Et mise à disposition dans les fichiers environment/development.js et environment/production.js
@@ -122,8 +122,8 @@ Et mise à disposition dans les fichiers environment/development.js et environme
 ```js
  sparkPostApiKey: process.env.SPARKPOST_API_KEY,
   sparkPostDomain: process.env.SPARKPOST_DOMAIN,
-  mailtrapApiKey: process.env.MAILTRAP_API_KEY,
   mailtrapUser: process.env.MAILTRAP_USER,
+  mailtrapPassword: process.env.MAILTRAP_PASSWORD,
 ```
 
 Création du fichier emails/index.js
@@ -155,7 +155,7 @@ class Email {
         port: 2525,
         auth: {
           user: config.mailtrapUser,
-          pass: config.mailtrapApiKey,
+          pass: config.mailtrapPassword,
         },
       });
     }
@@ -202,7 +202,7 @@ class Email {
       template: "email-verification",
       templateData: {
         username: options.username,
-        url: `https://${options.host}/auth/verify?userId=${options.userId}&token=${options.token}`,
+        url: `https://${options.host}/users/verify?userId=${options.userId}&token=${options.token}`,
       },
     });
   }
@@ -226,6 +226,223 @@ On va créer un template pour l'email de vérification.
 
 /emails/templates/email-verification.ejs
 
-```ejs
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vérifiez votre compte X-Clone</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    "
+  >
+    <div style="text-align: center; margin-bottom: 30px">
+      <h1 style="color: #1da1f2">X-Clone</h1>
+    </div>
 
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 10px">
+      <h2 style="color: #14171a">Bonjour <%= username %>,</h2>
+
+      <p style="color: #657786">
+        Merci d'avoir créé un compte sur X-Clone. Pour commencer à utiliser
+        votre compte, veuillez vérifier votre adresse email en cliquant sur le
+        bouton ci-dessous.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0">
+        <a
+          href="<%= url %>"
+          target="_blank"
+          style="
+            background-color: #1da1f2;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+          "
+        >
+          Vérifier mon compte
+        </a>
+      </div>
+
+      <p style="color: #657786; font-size: 14px">
+        Si vous n'avez pas créé de compte sur X-Clone, vous pouvez ignorer cet
+        email.
+      </p>
+    </div>
+
+    <div
+      style="
+        text-align: center;
+        margin-top: 20px;
+        color: #657786;
+        font-size: 12px;
+      "
+    >
+      <p>© <%= new Date().getFullYear() %> X-Clone. Tous droits réservés.</p>
+    </div>
+  </body>
+</html>
 ```
+
+## Route pour la reception de l'email de vérification
+
+/routes/users.routes.js
+
+On ajoute une route pour la reception de l'email de vérification.
+
+```js
+router.get("/verify", emailLinkVerification);
+```
+
+## Controller Pour la reception de l'email de vérification
+
+/controllers/users.controller.js
+
+On vérifie que l'utilisateur existe, que son email n'est pas déjà vérifié, que le token est valide et on valide l'email.
+Pour le moment on le redirige vers la page d'accueil.
+
+```js
+exports.emailLinkVerification = async (req, res, next) => {
+  try {
+    const { userId, token } = req.query;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    if (user.emailVerified) {
+      return res.status(400).send("Email already verified");
+    }
+    if (user.emailToken !== token) {
+      return res.status(400).send("Invalid token");
+    }
+    user.emailVerified = true;
+    user.emailToken = null;
+    await user.save();
+    res.redirect("/");
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+Optionnel: on aurait pu connecter l'utilisateur après la vérification de son email.
+
+```js
+exports.emailLinkVerification = async (req, res, next) => {
+  try {
+    const { userId, token } = req.query;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    if (user.emailVerified) {
+      return res.status(400).send("Email already verified");
+    }
+    if (user.emailVerificationToken !== token) {
+      return res.status(400).send("Invalid token");
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    await user.save();
+
+    // Connecter l'utilisateur automatiquement
+    req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      res.redirect("/");
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+## Envoi de l'email de vérification
+
+### Controller de la vérification de l'email
+
+On va envoyer l'email de vérification dans le controller de l'inscription.
+
+/controllers/users.controller.js
+
+Dans la méthode signup, on va ajouter l'envoi de l'email de vérification.
+On va également ensuite devoir ajouter la logique de création automatique d'un token dans la query createUser.
+
+- on récupère le constructeur d'email que l'on nomme emailService
+- on envoie l'email de vérification avec le token et l'id du user et les autres informations nécéssaires.
+
+```js
+const emailService = require("../emails");
+
+exports.signup = async (req, res, next) => {
+  try {
+    const body = req.body;
+    const user = await createUser(body);
+    emailService.sendEmailVerification({
+      to: user.email,
+      username: user.username,
+      token: user.emailToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
+    req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      res.redirect("/");
+    });
+  } catch (error) {
+    res.render("layout", {
+      content: "users/user-form",
+      errors: [error.message],
+      isAuthenticated: req.isAuthenticated(),
+      currentUser: req.user,
+    });
+  }
+};
+```
+
+### Token dans la query createUser
+
+On doit modifier la query createUser pour ajouter le token de vérification dans la query.
+On va utiliser le package uuid pour générer un token de vérification.
+
+```bash
+npm install uuid
+```
+
+/queries/users.queries.js
+
+```js
+const { v4: uuidv4 } = require("uuid");
+
+exports.createUser = async (user) => {
+  try {
+    const hashedPassword = await User.hashPassword(user.password);
+
+    const newUser = new User({
+      username: user.username,
+      email: user.email,
+      emailToken: uuidv4(),
+      local: {
+        password: hashedPassword,
+      },
+    });
+    return newUser.save();
+  } catch (error) {
+    throw error;
+  }
+};
+```
+
+##

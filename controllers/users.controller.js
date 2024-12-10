@@ -21,6 +21,8 @@ const upload = multer({
   }),
 });
 
+const emailService = require("../emails");
+
 exports.signupForm = (req, res, next) => {
   res.render("layout", {
     content: "users/user-form",
@@ -34,7 +36,13 @@ exports.signup = async (req, res, next) => {
   try {
     const body = req.body;
     const user = await createUser(body);
-    console.log(user);
+    emailService.sendEmailVerification({
+      to: user.email,
+      username: user.username,
+      token: user.emailToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
     req.login(user, (err) => {
       if (err) {
         return next(err);
@@ -132,6 +140,29 @@ exports.unfollowUser = async (req, res, next) => {
       findUserById(userId),
     ]);
     res.redirect(`/users/${user.username}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.emailLinkVerification = async (req, res, next) => {
+  console.log("emailLinkVerification");
+  try {
+    const { userId, token } = req.query;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    if (user.emailVerified) {
+      return res.status(400).send("Email already verified");
+    }
+    if (user.emailToken !== token) {
+      return res.status(400).send("Invalid token");
+    }
+    user.emailVerified = true;
+    user.emailToken = null;
+    await user.save();
+    res.redirect("/");
   } catch (err) {
     next(err);
   }

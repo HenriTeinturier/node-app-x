@@ -1,4 +1,5 @@
 const User = require("../database/models/user.model");
+const { v4: uuidv4 } = require("uuid");
 
 exports.createUser = async (user) => {
   try {
@@ -7,6 +8,7 @@ exports.createUser = async (user) => {
     const newUser = new User({
       username: user.username,
       email: user.email,
+      emailToken: uuidv4(),
       local: {
         password: hashedPassword,
       },
