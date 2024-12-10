@@ -9,6 +9,8 @@ const userSchema = new Schema({
     required: true,
     unique: true,
   },
+  emailToken: { type: String },
+  emailVerified: { type: Boolean, default: false },
   avatar: { type: String, default: "/images/avatars/default-avatar.png" },
   following: { type: [Schema.Types.ObjectId], ref: "user", default: [] },
   local: {

@@ -40,4 +40,15 @@
     <button class="topbar__button profile__unfollow-btn">Ne plus suivre</button>
   </a>
   <% } %> <% } %>
+
+  <!-- Affichage du statut de vérification de l'email -->
+  <% if (currentUser._id.toString() === user._id.toString()) { %>
+  <div class="profile-verification-status">
+    <% if (currentUser.emailVerified) { %>
+    <span class="verification-badge verified">✓ Email vérifié</span>
+    <% } else { %>
+    <span class="verification-badge unverified">⚠ Email non vérifié</span>
+    <% } %>
+  </div>
+  <% } %>
 </section>

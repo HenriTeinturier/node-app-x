@@ -529,6 +529,45 @@ form button:hover {
   background-color: #a71d2a !important;
 }
 
+.profile-verification-status {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #38444d;
+  text-align: center;
+}
+
+.verification-badge {
+  display: inline-block;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.verification-badge.verified {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+.verification-badge.unverified {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* Media queries pour profil */
 @media (max-width: 768px) {
   .profile-section {
