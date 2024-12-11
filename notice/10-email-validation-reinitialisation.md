@@ -500,7 +500,7 @@ passport.use(
 
 /controllers/auth.controller.js
 
-On va ajouter l'envoi de l'email de vérification dans le controller de l'inscription avec Google.
+On va ajouter l'envoi de l'email de vérification dans le controller de l'inscription avec Google si l'utilisateur n'a pas encore vérifié son email.
 
 ```js
 const emailService = require("../emails");
@@ -511,13 +511,15 @@ exports.signinWithGoogleCallback = (req, res, next) => {
       return next(err);
     }
 
-    emailService.sendEmailVerification({
-      to: user.email,
-      username: user.username,
-      token: user.emailToken,
-      userId: user._id,
-      host: req.headers.host,
-    });
+    if (!user.emailVerified) {
+      emailService.sendEmailVerification({
+        to: user.email,
+        username: user.username,
+        token: user.emailToken,
+        userId: user._id,
+        host: req.headers.host,
+      });
+    }
 
     return req.login(user, (err) => {
       if (err) {

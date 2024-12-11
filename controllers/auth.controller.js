@@ -64,13 +64,19 @@ exports.signinWithGoogleCallback = (req, res, next) => {
       return next(err);
     }
 
-    emailService.sendEmailVerification({
-      to: user.email,
-      username: user.username,
-      token: user.emailToken,
-      userId: user._id,
-      host: req.headers.host,
-    });
+    if (!user) {
+      return res.redirect("/auth/signin/form");
+    }
+
+    if (!user.emailVerified) {
+      emailService.sendEmailVerification({
+        to: user.email,
+        username: user.username,
+        token: user.emailToken,
+        userId: user._id,
+        host: req.headers.host,
+      });
+    }
 
     return req.login(user, (err) => {
       if (err) {
