@@ -685,6 +685,20 @@ form button:hover {
   background-color: #357abd;
 }
 
+.forgot-password {
+  text-align: right;
+  margin: -20px 0 20px 0;
+  font-size: 14px;
+  color: #1da1f2;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #1a91da;
+  text-decoration: underline;
+}
+
 /* Gestion de l'autofill */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -721,4 +735,31 @@ input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 30px #15202b inset !important;
   -webkit-text-fill-color: #e7e9ea !important;
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Styles pour SweetAlert2 */
+.swal2-popup {
+  background-color: #192734 !important;
+  border: 1px solid #38444d !important;
+}
+
+.swal2-title,
+.swal2-content {
+  color: #e7e9ea !important;
+}
+
+.swal2-input {
+  background-color: #15202b !important;
+  border: 1px solid #38444d !important;
+  color: #e7e9ea !important;
+}
+
+.swal2-input:focus {
+  border-color: #1da1f2 !important;
+  box-shadow: 0 0 0 1px #1da1f2 !important;
+}
+
+.swal2-validation-message {
+  background-color: #192734 !important;
+  color: #ff6b6b !important;
 }

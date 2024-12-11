@@ -1,4 +1,4 @@
-# 10-email-validation.md
+# email validation
 
 ## Adapatation du Model
 
@@ -530,3 +530,531 @@ exports.signinWithGoogleCallback = (req, res, next) => {
   })(req, res, next);
 };
 ```
+
+# reinitialisation mot de passe
+
+## Update du model user
+
+On va ajouter un champ passwordResetToken et passwordTokenExpiration dans le model user.
+
+/database/models/user.model.js
+
+```js
+const userSchema = new Schema({
+  username: { type: String, required: true, unique: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  emailToken: { type: String },
+  emailVerified: { type: Boolean, default: false },
+  avatar: { type: String, default: "/images/avatars/default-avatar.png" },
+  following: { type: [Schema.Types.ObjectId], ref: "user", default: [] },
+  local: {
+    password: { type: String },
+    passwordResetToken: { type: String },
+    passwordTokenExpiration: { type: Date },
+  },
+  google: {
+    id: {
+      type: String,
+    },
+  },
+});
+```
+
+## Mise à jour de la vue de connexion pour la reinitialisation de mot de passe
+
+On va ajouter un lien juste en dessous du bouton de connexion dans le formulaire de connexion avec une modale gérée avec la librairy SweetAlert2 pour demander l'email de l'utilisateur.
+
+/views/auth/auth-form.ejs
+
+```html
+<!-- formulaire de connexion -->
+<form action="/auth/signin" method="POST" class="signup-form">
+  <label for="email">Email</label>
+  <input
+    type="email"
+    id="email"
+    name="email"
+    placeholder="Entrez votre email"
+    required
+  />
+
+  <label for="password">Mot de passe</label>
+  <input
+    type="password"
+    id="password"
+    name="password"
+    placeholder="Entrez votre mot de passe"
+    required
+  />
+
+  <button type="submit" class="signin-button">Se connecter</button>
+  <!-- Nouveau lien pour mot de passe oublié -->
+  <a href="#" class="forgot-password" id="forgotPasswordLink"
+    >Mot de passe oublié ?</a
+  >
+</form>
+```
+
+Et voici le css à ajouter dans main.css
+
+Dans la partie 7 INSCRIPTION ET AUTHENTIFICATION
+
+```css
+.forgot-password {
+  text-align: right;
+  margin: -20px 0 20px 0;
+  font-size: 14px;
+  color: #1da1f2;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #1a91da;
+  text-decoration: underline;
+}
+```
+
+et dans la partie 9 UTILITAIRES et OVERRIDES en prévision de l'utilisation de SweetAlert2
+
+```css
+/* Styles pour SweetAlert2 */
+.swal2-popup {
+  background-color: #192734 !important;
+  border: 1px solid #38444d !important;
+}
+
+.swal2-title,
+.swal2-content {
+  color: #e7e9ea !important;
+}
+
+.swal2-input {
+  background-color: #15202b !important;
+  border: 1px solid #38444d !important;
+  color: #e7e9ea !important;
+}
+
+.swal2-input:focus {
+  border-color: #1da1f2 !important;
+  box-shadow: 0 0 0 1px #1da1f2 !important;
+}
+
+.swal2-validation-message {
+  background-color: #192734 !important;
+  color: #ff6b6b !important;
+}
+```
+
+## Ajout de la modale de reinitialisation de mot de passe
+
+On va utiliser SweetAlert2 pour la modale et du javascript pour gérer la logique de la modale.
+
+### javascript
+
+On créer un fichier js dans le dossier public/javascripts/auth/auth-form.js.
+On pourra utiliser Swal de SweetAlert2 pour la modale car on importera le cdn avant notre fichier javascript dans la vue.
+
+/public/javascripts/auth/auth-form.js
+
+On écoute le click sur le lien de la modale et on envoie une requête fetch à la route /users/forgot-password avec l'email en body.
+Si la requête est réussie, on affiche un message de succès en précisant à l'utilisateur de vérifier son email.
+
+```js
+window.addEventListener("DOMContentLoaded", () => {
+  const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      Swal.fire({
+        title: "Mot de passe oublié",
+        input: "email", // Utiliser 'input' au lieu de 'content'
+        inputPlaceholder: "Entrez votre email",
+      })
+        .then((result) => {
+          const email = result.value;
+          if (email) {
+            fetch(`/users/forgot-password`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                Swal.fire({
+                  title: "Mot de passe oublié",
+                  text:
+                    "Un email de réinitialisation de mot de passe a été envoyé à " +
+                    email,
+                  icon: "success",
+                });
+              })
+              .catch((error) => {
+                Swal.fire({
+                  title: "Erreur",
+                  text: "Une erreur est survenue lors de l'envoi de l'email",
+                });
+              });
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    });
+  }
+});
+```
+
+Et on importe le fichier javascript dans la vue /views/auth/auth-form.ejs
+On importe également avant le cdn de la librairie SweetAlert2.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/javascripts/auth/auth-form.js"></script>
+```
+
+## Route pour la reinitialisation de mot de passe
+
+/routes/users.routes.js
+
+```js
+router.post("/forgot-password", initResetPassword);
+```
+
+## Controller pour la reinitialisation de mot de passe
+
+/controllers/users.controller.js
+
+On va générer un token de réinitialisation de mot de passe avec uuidv4 et on va l'enregistrer dans le model user.
+On va également ajouter un champ passwordTokenExpiration avec une durée de 10 minutes. Pour gérer les durées on va utiliser la librairie dayjs.
+On va également envoyer un email de réinitialisation de mot de passe à l'utilisateur avec le token.
+
+```bash
+npm install dayjs
+```
+
+On pourrait crféer une fonction pour générer le token de réinitialisation de mot de passe mais on va le faire dans le controller.
+Idem pour la durée de validité du token.
+
+```js
+const { v4: uuidv4 } = require("uuid");
+const dayjs = require("dayjs");
+
+exports.initResetPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Pas d'email" });
+    }
+
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+
+    const passwordResetToken = uuidv4();
+    user.local.passwordResetToken = passwordResetToken;
+    user.local.passwordTokenExpiration = dayjs().add(10, "minutes").toDate();
+    await user.save();
+
+    console.log("user", user);
+
+    emailService.sendResetPasswordEmail({
+      to: user.email,
+      username: user.username,
+      passwordResetToken: passwordResetToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
+    res.status(200).json({ message: "Email sent" });
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+## Création de la fonction transporter pour la réinitialisation de mot de passe
+
+On va ajouter notre method dans /emails/index.js
+
+```js
+// Envoi d'un email de réinitialisation de mot de passe
+  async sendResetPasswordEmail(options) {
+    return this.sendEmail({
+      template: "password-reset",
+      templateData: {
+        username: options.username,
+        url: `https://${options.host}/users/reset-password?userId=${options.userId}&passwordResetToken=${options.passwordResetToken}`,
+      },
+      to: options.to,
+      subject: "X-clone - Réinitialisation de mot de passe",
+    });
+  }
+```
+
+## Création du template pour l'email de réinitialisation de mot de passe
+
+/emails/templates/password-reset.ejs
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Réinitialisez votre mot de passe X-Clone</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    "
+  >
+    <div style="text-align: center; margin-bottom: 30px">
+      <h1 style="color: #1da1f2">X-Clone</h1>
+    </div>
+
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 10px">
+      <h2 style="color: #14171a">Bonjour <%= username %>,</h2>
+
+      <p style="color: #657786">
+        Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur
+        le bouton ci-dessous pour créer un nouveau mot de passe. Ce lien est
+        valable pendant 1 heure.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0">
+        <a
+          href="<%= url %>"
+          target="_blank"
+          style="
+            background-color: #1da1f2;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+          "
+        >
+          Réinitialiser mon mot de passe
+        </a>
+      </div>
+
+      <p style="color: #657786; font-size: 14px">
+        Si vous n'avez pas demandé la réinitialisation de votre mot de passe,
+        vous pouvez ignorer cet email en toute sécurité.
+      </p>
+
+      <p style="color: #657786; font-size: 14px">
+        Pour des raisons de sécurité, ce lien expirera dans 10 minutes.
+      </p>
+    </div>
+
+    <div
+      style="
+        text-align: center;
+        margin-top: 20px;
+        color: #657786;
+        font-size: 12px;
+      "
+    >
+      <p>© <%= new Date().getFullYear() %> X-Clone. Tous droits réservés.</p>
+    </div>
+  </body>
+</html>
+```
+
+## Route pour l'initialisation de la réinitialisation de mot de passe
+
+/routes/users.routes.js
+
+```js
+router.get("/reset-password", resetPasswordForm);
+```
+
+## Controller pour l'affichage du formulaire de réinitialisation de mot de passe
+
+/controllers/users.controller.js
+
+```js
+exports.resetPasswordForm = async (req, res, next) => {
+  try {
+    const { userId, passwordResetToken } = req.query;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+    if (user.local.passwordResetToken !== passwordResetToken) {
+      return res.status(400).json({ message: "Token invalide" });
+    }
+
+    res.render("layout", {
+      content: "auth/auth-reset-password-form",
+      userId: userId,
+      passwordResetToken: passwordResetToken,
+      errors: null,
+      isAuthenticated: req.isAuthenticated(),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+## View pour le formulaire de réinitialisation de mot de passe
+
+/views/auth/auth-reset-password-form.ejs
+
+Dans la vue j'ai ajouter deux champs chachés userId et passwordResetToken afin de les transmettre à la route /users/reset-password.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/javascripts/auth/auth-reset-password.js"></script>
+
+<main class="signup-section">
+  <h1>Réinitialisation du mot de passe</h1>
+
+  <!-- gestion des erreurs -->
+  <% if (errors) { %>
+  <div class="error-message">
+    <% if (Array.isArray(errors)) { %> <% errors.forEach(function (err) { %>
+    <p class="error-text"><%= err %></p>
+    <% }); %> <% } else { %>
+    <p class="error-text"><%= errors %></p>
+    <% } %>
+  </div>
+  <% } %>
+
+  <!-- formulaire de réinitialisation -->
+  <form action="/users/reset-password" method="POST" class="signup-form">
+    <input type="hidden" name="userId" value="<%= userId %>" />
+    <input
+      type="hidden"
+      name="passwordResetToken"
+      value="<%= passwordResetToken %>"
+    />
+
+    <label for="password">Nouveau mot de passe</label>
+    <input
+      type="password"
+      id="password"
+      name="password"
+      placeholder="Entrez votre nouveau mot de passe"
+      required
+    />
+
+    <label for="confirmPassword">Confirmer le mot de passe</label>
+    <input
+      type="password"
+      id="confirmPassword"
+      name="confirmPassword"
+      placeholder="Confirmez votre nouveau mot de passe"
+      required
+    />
+
+    <button type="submit" class="signin-button">
+      Réinitialiser le mot de passe
+    </button>
+
+    <!-- Lien retour connexion -->
+    <a href="/auth/signin/form" class="forgot-password"
+      >Retour à la connexion</a
+    >
+  </form>
+</main>
+```
+
+## Route pour la réinitialisation de mot de passe
+
+/routes/users.routes.js
+
+```js
+router.post("/reset-password", resetPassword);
+```
+
+## Controller pour la réinitialisation de mot de passe
+
+/controllers/users.controller.js
+
+```js
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { userId, passwordResetToken, password, confirmPassword } = req.body;
+    if (password !== confirmPassword) {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: ["Les mots de passe ne correspondent pas"],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+    if (password === "") {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: ["Le mot de passe ne peut pas être vide"],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+
+    console.log(
+      "user.local.passwordResetToken",
+      typeof user.local.passwordTokenExpiration,
+      user.local.passwordResetToken
+    );
+    console.log(
+      "passwordResetToken",
+      typeof passwordResetToken,
+      passwordResetToken
+    );
+
+    if (user.local.passwordResetToken !== passwordResetToken) {
+      return res.status(400).json({ message: "Token invalide" });
+    }
+
+    if (dayjs().isAfter(user.local.passwordTokenExpiration)) {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: [
+          "Vous ne pouvez plus réinitialiser votre mot de passe. Recommencez la procédure de réinitialisation",
+        ],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+
+    // il faut hasher le mot de passe
+    user.local.password = await User.hashPassword(password);
+
+    user.local.passwordResetToken = null;
+    user.local.passwordTokenExpiration = null;
+    await user.save();
+    res.redirect("/auth/signin/form");
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+## BONUS ANCIEN OUBLIE: Afficher la recherche utilisateur que si l'utilisateur est connecté
+
+//TODO TEST EN PROD
+// COPIER LA VERSION FINALE SUR NODE FORMATION 99 XXLONE
+//TODO Afficher la recherche utilisateur que si connecte

@@ -9,6 +9,9 @@ const {
   followUser,
   unfollowUser,
   emailLinkVerification,
+  initResetPassword,
+  resetPasswordForm,
+  resetPassword,
 } = require("../controllers/users.controller");
 
 router.get("/signup/form", signupForm);
@@ -17,6 +20,9 @@ router.post("/update/avatar", ensureAuthenticated, updateAvatar);
 router.get("/follow/:userId", ensureAuthenticated, followUser);
 router.get("/unfollow/:userId", ensureAuthenticated, unfollowUser);
 router.get("/verify", emailLinkVerification);
+router.post("/forgot-password", initResetPassword);
+router.get("/reset-password", resetPasswordForm);
+router.post("/reset-password", resetPassword);
 router.get("/:username", userProfile);
 router.get("/", usersSearch);
 

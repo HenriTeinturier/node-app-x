@@ -5,6 +5,7 @@ const {
   addUserIdToCurrentUserFollowing,
   findUserById,
   removeUserIdFromCurrentUserFollowing,
+  findUserByEmail,
 } = require("../queries/users.queries");
 const path = require("path");
 const fs = require("fs");
@@ -21,7 +22,10 @@ const upload = multer({
   }),
 });
 
+const { v4: uuidv4 } = require("uuid");
+const dayjs = require("dayjs");
 const emailService = require("../emails");
+const User = require("../database/models/user.model");
 
 exports.signupForm = (req, res, next) => {
   res.render("layout", {
@@ -163,6 +167,128 @@ exports.emailLinkVerification = async (req, res, next) => {
     user.emailToken = null;
     await user.save();
     res.redirect("/");
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.initResetPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Pas d'email" });
+    }
+
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+
+    const passwordResetToken = uuidv4();
+    user.local.passwordResetToken = passwordResetToken;
+    user.local.passwordTokenExpiration = dayjs().add(10, "minutes").toDate();
+    await user.save();
+
+    console.log("user", user);
+
+    emailService.sendResetPasswordEmail({
+      to: user.email,
+      username: user.username,
+      passwordResetToken: passwordResetToken,
+      userId: user._id,
+      host: req.headers.host,
+    });
+    res.status(200).json({ message: "Email sent" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.resetPasswordForm = async (req, res, next) => {
+  try {
+    const { userId, passwordResetToken } = req.query;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+    if (user.local.passwordResetToken !== passwordResetToken) {
+      return res.status(400).json({ message: "Token invalide" });
+    }
+
+    res.render("layout", {
+      content: "auth/auth-reset-password-form",
+      userId: userId,
+      passwordResetToken: passwordResetToken,
+      errors: null,
+      isAuthenticated: req.isAuthenticated(),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { userId, passwordResetToken, password, confirmPassword } = req.body;
+    if (password !== confirmPassword) {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: ["Les mots de passe ne correspondent pas"],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+    if (password === "") {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: ["Le mot de passe ne peut pas être vide"],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur inconnu" });
+    }
+
+    console.log(
+      "user.local.passwordResetToken",
+      typeof user.local.passwordTokenExpiration,
+      user.local.passwordResetToken
+    );
+    console.log(
+      "passwordResetToken",
+      typeof passwordResetToken,
+      passwordResetToken
+    );
+
+    if (user.local.passwordResetToken !== passwordResetToken) {
+      return res.status(400).json({ message: "Token invalide" });
+    }
+
+    if (dayjs().isAfter(user.local.passwordTokenExpiration)) {
+      return res.render("layout", {
+        content: "auth/auth-reset-password-form",
+        userId: userId,
+        passwordResetToken: passwordResetToken,
+        errors: [
+          "Vous ne pouvez plus réinitialiser votre mot de passe. Recommencez la procédure de réinitialisation",
+        ],
+        isAuthenticated: req.isAuthenticated(),
+      });
+    }
+
+    // il faut hasher le mot de passe
+    user.local.password = await User.hashPassword(password);
+
+    user.local.passwordResetToken = null;
+    user.local.passwordTokenExpiration = null;
+    await user.save();
+    res.redirect("/auth/signin/form");
   } catch (err) {
     next(err);
   }

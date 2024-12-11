@@ -73,6 +73,19 @@ class Email {
     });
   }
 
+  // Envoi d'un email de réinitialisation de mot de passe
+  async sendResetPasswordEmail(options) {
+    return this.sendEmail({
+      template: "password-reset",
+      templateData: {
+        username: options.username,
+        url: `https://${options.host}/users/reset-password?userId=${options.userId}&passwordResetToken=${options.passwordResetToken}`,
+      },
+      to: options.to,
+      subject: "X-clone - Réinitialisation de mot de passe",
+    });
+  }
+
   // async sendPasswordReset(options) {
   //   return this.sendEmail({
   //     template: 'password-reset',

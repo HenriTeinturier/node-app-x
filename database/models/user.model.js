@@ -15,6 +15,8 @@ const userSchema = new Schema({
   following: { type: [Schema.Types.ObjectId], ref: "user", default: [] },
   local: {
     password: { type: String },
+    passwordResetToken: { type: String },
+    passwordTokenExpiration: { type: Date },
   },
   google: {
     id: {
