@@ -1055,6 +1055,27 @@ exports.resetPassword = async (req, res, next) => {
 
 ## BONUS ANCIEN OUBLIE: Afficher la recherche utilisateur que si l'utilisateur est connecté
 
-//TODO TEST EN PROD
-// COPIER LA VERSION FINALE SUR NODE FORMATION 99 XXLONE
-//TODO Afficher la recherche utilisateur que si connecte
+/views/includes/topbar.ejs
+
+Nous avons ajouter un wrapper pour la recherche utilisateur dans le topbar.ejs qui ne sera affiché que si l'utilisateur est connecté.
+
+```html
+<!-- Search -->
+<% if (isAuthenticated) { %>
+<form class="topbar__search">
+  <input
+    type="search"
+    class="topbar__search-input"
+    id="search-input"
+    placeholder="Rechercher un utilisateur..."
+    aria-label="Rechercher un utilisateur"
+  />
+  <div id="search-menu-container">
+    <div class="search-menu">
+      <!-- partial search-results.ejs -->
+      <%- include("search-results") %>
+    </div>
+  </div>
+</form>
+<% } %>
+```

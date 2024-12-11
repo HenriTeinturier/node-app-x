@@ -7,6 +7,7 @@
   </div>
 
   <!-- Search -->
+  <% if (isAuthenticated) { %>
   <form class="topbar__search">
     <input
       type="search"
@@ -22,6 +23,7 @@
       </div>
     </div>
   </form>
+  <% } %>
 
   <!-- Right -->
   <div class="topbar__right">
